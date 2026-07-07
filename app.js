@@ -485,15 +485,27 @@ async function doRegister() {
 
 // ── ORDERS ────────────────────────────────────────────────────────────────────
 async function saveOrder(orderNum) {
-  if (!currentUser || !authToken) return;
+  if (!currentUser || !authToken) {
+    showToast('⚠️ Debés iniciar sesión para guardar el pedido', false);
+    return false;
+  }
   const uid = document.getElementById('orderUid').value.trim() || document.getElementById('userIdInput').value.trim();
   try {
-    await fetch(API + '/orders', {
+    const res  = await fetch(API + '/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + authToken },
       body: JSON.stringify({ order_num: orderNum, product: selectedDiamond.name, uid, total: sol(selectedDiamond.price * qty) })
     });
-  } catch { console.warn('No se pudo guardar el pedido en el servidor'); }
+    const data = await res.json();
+    if (!res.ok) {
+      showToast('⚠️ Error al guardar pedido: ' + (data.error || res.status), false);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    showToast('⚠️ Sin conexión con el servidor', false);
+    return false;
+  }
 }
 
 async function loadOrders() {
