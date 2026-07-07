@@ -959,3 +959,13 @@ body::before {
   transition: all .2s; vertical-align: middle;
 }
 .btn-refresh-orders:hover { opacity: 1; transform: rotate(180deg); }
+
+/* ══ UID VERIFY ══ */
+.uid-verify {
+  margin-top: 8px; padding: 9px 14px; border-radius: 8px;
+  font-size: 13px; font-weight: 500; transition: all .2s;
+}
+.uid-verify.loading { background: rgba(0,212,255,.06); border: 1px solid rgba(0,212,255,.2); color: var(--text-dim); }
+.uid-verify.success { background: rgba(34,197,94,.08); border: 1px solid rgba(34,197,94,.3); color: var(--green); }
+.uid-verify.warn    { background: rgba(245,197,24,.07); border: 1px solid rgba(245,197,24,.25); color: var(--accent); }
+.uid-verify strong  { color: var(--text); font-size: 14px; }

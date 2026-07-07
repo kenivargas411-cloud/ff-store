@@ -202,7 +202,35 @@ app.get('/api/admin/stats', adminMiddleware, (req, res) => {
   res.json({ total, pending, processing: proc, completed: done, users });
 });
 
-// ── SSE — Tiempo real ─────────────────────────────────────────────────────────
+// ── Validar UID Free Fire ─────────────────────────────────────────────────────
+app.get('/api/validate-uid/:uid', authMiddleware, async (req, res) => {
+  const uid    = req.params.uid;
+  const region = req.query.region || 'me'; // me = Middle East/LATAM
+
+  // Intentar con múltiples APIs públicas
+  const apis = [
+    `https://ff-info.vercel.app/api/player?uid=${uid}&region=${region}`,
+    `https://api-freefire.vercel.app/player?uid=${uid}`,
+  ];
+
+  for (const url of apis) {
+    try {
+      const controller = new AbortController();
+      const timeout    = setTimeout(() => controller.abort(), 4000);
+      const response   = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeout);
+
+      if (response.ok) {
+        const data = await response.json();
+        const name = data?.basicInfo?.nickname || data?.name || data?.player?.name || null;
+        if (name) return res.json({ valid: true, name, uid });
+      }
+    } catch {}
+  }
+
+  // Si ninguna API responde, devolver válido sin nombre (no bloquear la compra)
+  res.json({ valid: true, name: null, uid });
+});
 const sseClients = new Map(); // userId → res
 
 app.get('/api/events', (req, res) => {
