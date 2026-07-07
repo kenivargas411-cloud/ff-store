@@ -10,9 +10,17 @@ const fs         = require('fs');
 const app    = express();
 const SECRET = 'ffstore_secret_2025_jwt';
 
-// Usar /data si existe (volumen Railway), sino directorio local
-const dataDir = fs.existsSync('/data') ? '/data' : __dirname;
-const db      = new Database(path.join(dataDir, 'ffstore.db'));
+// Usar /data si existe y tiene permisos (volumen Railway), sino directorio local
+let dataDir = __dirname;
+try {
+  if (fs.existsSync('/data')) {
+    fs.accessSync('/data', fs.constants.W_OK);
+    dataDir = '/data';
+  }
+} catch(e) {
+  console.log('⚠️ /data no tiene permisos, usando directorio local');
+}
+const db = new Database(path.join(dataDir, 'ffstore.db'));
 console.log('📦 DB en:', path.join(dataDir, 'ffstore.db'));
 
 // Carpeta para comprobantes
@@ -146,10 +154,14 @@ app.post('/api/orders', authMiddleware, (req, res) => {
   if (!order_num || !product || !uid || !total)
     return res.status(400).json({ error: 'Datos incompletos' });
 
-  db.prepare("INSERT INTO orders (order_num, user_id, username, product, uid, total) VALUES (?, ?, ?, ?, ?, ?)")
-    .run(order_num, req.user.id, req.user.username, product, uid, total);
-
-  res.json({ success: true, order_num });
+  try {
+    db.prepare("INSERT INTO orders (order_num, user_id, username, product, uid, total) VALUES (?, ?, ?, ?, ?, ?)")
+      .run(order_num, req.user.id, req.user.username, product, uid, total);
+    res.json({ success: true, order_num });
+  } catch(e) {
+    console.error('Error INSERT orders:', e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // Mis pedidos
