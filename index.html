@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Free Fire Diamonds – Recarga Oficial</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="nav-inner">
+      <div class="nav-logo">
+        <span class="logo-ff">Ken</span><span class="logo-store">Store</span>
+      </div>
+      <ul class="nav-links">
+      </ul>
+      <div class="nav-right">
+        <button class="btn-login" onclick="openModal('modalAuth')" id="btnLogin">Iniciar Sesión</button>
+        <button class="btn-hamburger" id="btnMenu" onclick="toggleDrawer()" style="display:none">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+
+
+  <!-- HERO BANNER -->
+  <header class="hero">
+    <div class="hero-inner">
+      <div class="hero-left">
+        <div class="hero-char-wrap">
+          <img src="banner-promo.jpg" alt="Free Fire +10% Bonus" class="hero-cover-img" />
+        </div>
+
+      </div>
+      <div class="hero-right">
+        <div class="hero-title-block">
+          <h1 class="hero-title">Free Fire</h1>
+          <div class="hero-tags">
+            <span class="tag green">✔ Oficial</span>
+            <span class="tag yellow">⚡ Instantáneo</span>
+            <span class="tag blue">🌎 Canjeable en Perú</span>
+          </div>
+          <p class="hero-note">Precio final impuestos incluidos</p>
+        </div>
+        <p class="hero-desc">Free Fire Diamonds – Top Up seguro y al instante para jugadores de Perú.</p>
+      </div>
+    </div>
+  </header>
+
+
+
+  <!-- MAIN -->
+  <main class="main-wrap">
+    <div class="content-grid">
+
+      <!-- LEFT -->
+      <div class="col-left">
+
+        <!-- STEP 1 -->
+        <div class="card step-card">
+          <div class="step-header" onclick="toggleStep('step1')">
+            <div class="step-header-left">
+              <span class="step-num">1</span>
+              <div>
+                <h2>Elegí tus diamantes</h2>
+                <small>Precio final impuestos incluidos</small>
+              </div>
+            </div>
+            <span class="chevron" id="chevron-step1">▲</span>
+          </div>
+          <div class="step-body" id="step1">
+            <div class="diamonds-grid" id="diamondsGrid">
+              <!-- Rendered by JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 2 -->
+        <div class="card step-card">
+          <div class="step-header" onclick="toggleStep('step2')">
+            <div class="step-header-left">
+              <span class="step-num">2</span>
+              <div>
+                <h2>Ingresá tu User ID</h2>
+                <small>Precio final impuestos incluidos</small>
+              </div>
+            </div>
+            <span class="chevron" id="chevron-step2">▲</span>
+          </div>
+          <div class="step-body" id="step2">
+            <label class="uid-label">🎮 INGRESÁ TU FREE FIRE USER ID</label>
+            <input type="text" id="userIdInput" class="uid-input" placeholder="Ejemplo: 123456789"
+              maxlength="15" oninput="syncUID(this.value)" />
+            <p class="uid-hint">Solo números, entre 6 y 15 dígitos</p>
+
+            <details class="uid-help">
+              <summary>¿Dónde encuentro mi User ID? <span class="uid-chevron">▲</span></summary>
+              <div class="uid-steps">
+                <div class="uid-step-row">
+                  <img src="iconid.png" alt="Free Fire" class="uid-thumb" />
+                  <ul class="uid-list">
+                    <li><span class="uid-num">1</span><span>Abrí Free Fire</span></li>
+                    <li><span class="uid-num">2</span><span>Tocá tu avatar</span></li>
+                    <li><span class="uid-num">3</span><span>Copiá el número UID</span></li>
+                  </ul>
+                </div>
+              </div>
+            </details>
+          </div>
+        </div>
+
+        <!-- STEP 3 – Comprar ahora (mobile-style) -->
+        <div class="card step-card">
+          <div class="step-header" onclick="toggleStep('step3')">
+            <div class="step-header-left">
+              <span class="step-num">3</span>
+              <div>
+                <h2>Comprar ahora</h2>
+                <small>Precio final impuestos incluidos</small>
+              </div>
+            </div>
+            <span class="chevron" id="chevron-step3">▲</span>
+          </div>
+          <div class="step-body" id="step3">
+            <div class="buy-summary">
+              <div id="buySummaryName" class="buy-name">— Seleccioná un paquete —</div>
+              <div id="buySummaryPrice" class="buy-price">$ 0</div>
+            </div>
+            <div class="qty-row">
+              <span class="qty-label">Cantidad</span>
+              <div class="qty-ctrl">
+                <button class="qty-btn" onclick="changeQty(-1)">−</button>
+                <span id="qtyDisplay">1</span>
+                <button class="qty-btn" onclick="changeQty(1)">+</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- PAYMENT METHODS -->
+        <div class="card step-card">
+          <div class="step-header" onclick="toggleStep('stepPay')">
+            <div class="step-header-left">
+              <span class="step-num pay-icon">💳</span>
+              <div>
+                <h2>Método de Pago</h2>
+                <small>Elegí cómo querés pagar</small>
+              </div>
+            </div>
+            <span class="chevron" id="chevron-stepPay">▲</span>
+          </div>
+          <div class="step-body" id="stepPay">
+            <div class="payment-grid" id="paymentGrid">
+              <!-- Rendered by JS -->
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /col-left -->
+
+      <!-- RIGHT -->
+      <div class="col-right">
+        <div class="card order-card sticky-card">
+          <h2 class="order-title">Información de pedido</h2>
+
+          <div class="order-product">
+            <img src="diamond-100.png" alt="diamond" class="order-diamond-img" id="orderDiamondImg" />
+            <div id="orderProductName" class="order-product-name">— Seleccioná un paquete —</div>
+          </div>
+
+          <div class="order-uid-row">
+            <label>Player ID</label>
+            <input type="text" id="orderUid" class="order-uid-input" placeholder="Ingresá tu Player ID" oninput="syncUID2(this.value)" />
+          </div>
+
+          <div class="order-summary">
+            <div class="order-row">
+              <span>Paquete</span>
+              <span id="summaryPack">—</span>
+            </div>
+            <div class="order-row">
+              <span>Cantidad</span>
+              <span id="summaryQty">1</span>
+            </div>
+            <div class="order-divider"></div>
+            <div class="order-row total-row">
+              <span>Total</span>
+              <span id="summaryTotal" class="price-accent">$ 0</span>
+            </div>
+          </div>
+
+          <button class="btn-buy-now full-btn" onclick="buyNow()">COMPRA AHORA</button>
+
+          <div class="secure-badges">
+            <div class="badge-item">🔒 Pago seguro</div>
+            <div class="badge-item">⚡ Entrega instantánea</div>
+            <div class="badge-item">✔ Oficial</div>
+          </div>
+        </div>
+      </div><!-- /col-right -->
+
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-logo"><span class="logo-ff">Ken</span><span class="logo-store">Store</span></div>
+      <p>© 2025 FF Store — No afiliado con Garena International. Free Fire es marca registrada de Garena.</p>
+      <div class="footer-links">
+        <a href="#">Términos y Condiciones</a>
+        <a href="#">Privacidad</a>
+        <a href="#">Soporte</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Toast notification -->
+  <div class="toast" id="toast"></div>
+
+  <!-- ══════ DRAWER MIS COMPRAS ══════ -->
+  <div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer()"></div>
+  <div class="drawer" id="drawer">
+    <div class="drawer-header">
+      <div class="compras-user">
+        <div class="compras-avatar">👤</div>
+        <div>
+          <div class="compras-username" id="comprasUsername">Usuario</div>
+          <div class="compras-badge">Cuenta activa</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn-logout" onclick="logout()">Cerrar sesión</button>
+        <button class="drawer-close" onclick="toggleDrawer()">✕</button>
+      </div>
+    </div>
+
+    <div class="drawer-section-title">📦 Mis Compras</div>
+
+    <div id="comprasList">
+      <div class="compras-empty" id="comprasEmpty">
+        <div class="compras-empty-icon">🛒</div>
+        <p>Todavía no tenés pedidos.<br>¡Realizá tu primera recarga!</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ BOTÓN WHATSAPP FLOTANTE ══════ -->
+  <a class="btn-wsp" id="btnWsp" href="https://wa.me/51999123456?text=Hola,%20necesito%20soporte%20con%20mi%20pedido" target="_blank" title="Soporte por WhatsApp" style="display:none">
+    <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="16" cy="16" r="16" fill="#25D366"/>
+      <path d="M23.5 8.5C21.7 6.7 19.3 5.6 16.7 5.6C11.3 5.6 6.9 10 6.9 15.4C6.9 17.2 7.4 19 8.3 20.5L6.8 25.4L11.8 23.9C13.3 24.8 15 25.2 16.7 25.2C22.1 25.2 26.5 20.8 26.5 15.4C26.4 12.8 25.3 10.3 23.5 8.5ZM16.7 23.6C15.1 23.6 13.6 23.2 12.2 22.4L11.9 22.2L9 23.1L9.9 20.3L9.7 20C8.9 18.6 8.5 17 8.5 15.4C8.5 10.9 12.2 7.2 16.8 7.2C19 7.2 21 8 22.6 9.6C24.2 11.2 25 13.2 25 15.4C24.9 20 21.2 23.6 16.7 23.6ZM21.1 17.5C20.9 17.4 19.6 16.8 19.4 16.7C19.2 16.6 19.1 16.6 18.9 16.8C18.8 17 18.3 17.6 18.1 17.7C18 17.9 17.8 17.9 17.6 17.8C16.3 17.1 15.4 16.6 14.5 15.1C14.3 14.8 14.7 14.8 15.1 14C15.2 13.9 15.1 13.7 15.1 13.6C15.1 13.5 14.6 12.2 14.4 11.7C14.2 11.2 14 11.3 13.9 11.3H13.5C13.3 11.3 13.1 11.4 12.9 11.6C12.7 11.8 12.1 12.4 12.1 13.7C12.1 15 13 16.2 13.1 16.4C13.2 16.5 14.6 18.7 16.8 19.9C18.6 20.8 19.3 20.8 20.1 20.7C20.6 20.6 21.6 20.1 21.8 19.5C22 18.9 22 18.4 21.9 18.3C21.8 18 21.3 17.8 21.1 17.5Z" fill="white"/>
+    </svg>
+    <span class="wsp-tooltip">Soporte WhatsApp</span>
+  </a>
+
+  <!-- ══════ MODAL AUTH ══════ -->
+  <div class="modal-overlay" id="modalAuth">
+    <div class="modal-box">
+      <button class="modal-close" onclick="closeModal('modalAuth')">✕</button>
+
+      <!-- Tabs -->
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tabLogin" onclick="switchTab('login')">Iniciar Sesión</button>
+        <button class="auth-tab" id="tabRegister" onclick="switchTab('register')">Registrarse</button>
+      </div>
+
+      <!-- LOGIN -->
+      <div id="panelLogin">
+        <div class="auth-logo">
+          <div>
+            <div class="auth-title">Bienvenido de vuelta</div>
+            <div class="auth-sub">Ingresá a tu cuenta FF Store</div>
+          </div>
+        </div>
+        <div class="auth-field">
+          <label>Usuario</label>
+          <input type="text" id="loginUser" class="uid-input" placeholder="Tu nombre de usuario" />
+        </div>
+        <div class="auth-field">
+          <label>Contraseña</label>
+          <div class="pass-wrap">
+            <input type="password" id="loginPass" class="uid-input" placeholder="Tu contraseña" />
+            <button class="btn-eye" onclick="togglePass('loginPass', this)">👁</button>
+          </div>
+        </div>
+        <div class="auth-forgot"><a href="#">¿Olvidaste tu contraseña?</a></div>
+        <button class="btn-buy-now full-btn" style="margin-top:18px" onclick="doLogin()">INGRESAR</button>
+        <p class="auth-switch">¿No tenés cuenta? <a onclick="switchTab('register')">Registrate</a></p>
+      </div>
+
+      <!-- REGISTER -->
+      <div id="panelRegister" style="display:none">
+        <div class="auth-logo">
+          <div>
+            <div class="auth-title">Crear cuenta</div>
+            <div class="auth-sub">Registrate en FF Store gratis</div>
+          </div>
+        </div>
+        <div class="auth-field">
+          <label>Usuario</label>
+          <input type="text" id="regUser" class="uid-input" placeholder="Elegí un nombre de usuario" />
+        </div>
+        <div class="auth-field">
+          <label>Correo electrónico</label>
+          <input type="email" id="regEmail" class="uid-input" placeholder="tucorreo@email.com" />
+        </div>
+        <div class="auth-field">
+          <label>Contraseña</label>
+          <div class="pass-wrap">
+            <input type="password" id="regPass" class="uid-input" placeholder="Mínimo 6 caracteres" />
+            <button class="btn-eye" onclick="togglePass('regPass', this)">👁</button>
+          </div>
+        </div>
+        <div class="auth-field">
+          <label>Confirmar contraseña</label>
+          <div class="pass-wrap">
+            <input type="password" id="regPass2" class="uid-input" placeholder="Repetí tu contraseña" />
+            <button class="btn-eye" onclick="togglePass('regPass2', this)">👁</button>
+          </div>
+        </div>
+        <button class="btn-buy-now full-btn" style="margin-top:18px" onclick="doRegister()">CREAR CUENTA</button>
+        <p class="auth-switch">¿Ya tenés cuenta? <a onclick="switchTab('login')">Iniciá sesión</a></p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════ MODAL 1: CONFIRMAR ID ══════ -->
+  <div class="modal-overlay" id="modalConfirmID">
+    <div class="modal-box">
+      <button class="modal-close" onclick="closeModal('modalConfirmID')">✕</button>
+      <div class="modal-icon">🎮</div>
+      <h2 class="modal-title">Verificá tu ID</h2>
+      <p class="modal-subtitle">Confirmá que tu Free Fire User ID sea correcto antes de continuar</p>
+
+      <div class="confirm-id-box">
+        <div class="confirm-id-label">Tu User ID:</div>
+        <div class="confirm-id-value" id="confirmIDValue">—</div>
+      </div>
+
+      <div class="confirm-product-row">
+        <img id="confirmProductImg" src="diamond-100.png" class="confirm-product-img" alt="producto" />
+        <div>
+          <div class="confirm-product-name" id="confirmProductName">—</div>
+          <div class="confirm-product-price" id="confirmProductPrice">$ 0</div>
+        </div>
+      </div>
+
+      <p class="modal-warn">⚠️ Si el ID es incorrecto, los diamantes no llegarán y no habrá reembolso.</p>
+
+      <div class="modal-actions">
+        <button class="btn-modal-cancel" onclick="closeModal('modalConfirmID')">Corregir ID</button>
+        <button class="btn-modal-confirm" onclick="confirmarID()">✔ Confirmar y Pagar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ MODAL 2: PAGO ══════ -->
+  <div class="modal-overlay" id="modalPago">
+    <div class="modal-box modal-box-wide">
+      <button class="modal-close" onclick="closeModal('modalPago')">✕</button>
+
+      <!-- Steps -->
+      <div class="pay-steps">
+        <div class="pay-step active" id="pstep1"><span class="pay-step-num">1</span><span>Resumen</span></div>
+        <div class="pay-step-line"></div>
+        <div class="pay-step" id="pstep2"><span class="pay-step-num">2</span><span>Comprobante</span></div>
+        <div class="pay-step-line"></div>
+        <div class="pay-step" id="pstep3"><span class="pay-step-num">3</span><span>Confirmar</span></div>
+      </div>
+
+      <!-- Panel step 1 -->
+      <div id="payPanel1">
+        <h2 class="modal-title">Resumen de tu pedido</h2>
+
+        <div class="pay-summary-row">
+          <img id="payProductImg" src="diamond-100.png" class="pay-product-img" alt="producto" />
+          <div>
+            <div class="pay-product-name" id="payProductName">—</div>
+            <div class="pay-product-price" id="payProductPrice">$ 0</div>
+          </div>
+        </div>
+
+        <div class="pay-detail-row"><span>User ID</span><strong id="payUID">—</strong></div>
+        <div class="pay-detail-row"><span>Método de Pago</span><strong id="payMethod">PayPal</strong></div>
+        <div class="pay-detail-row total"><span>Total a pagar</span><strong id="payTotal" class="price-accent">$ 0</strong></div>
+
+        <div class="pay-warning">
+          <div class="pay-warn-title">⚠️ IMPORTANTE — LEÉ ANTES DE PAGAR</div>
+          <ul>
+            <li>✕ Verificá que tu User ID sea correcto antes de pagar.</li>
+            <li>✕ Una vez confirmado el pago no hay reembolso.</li>
+            <li>✕ Los diamantes se acreditan en minutos.</li>
+          </ul>
+        </div>
+
+        <button class="btn-buy-now full-btn" onclick="irAComprobante()">Continuar →</button>
+      </div>
+
+      <!-- Panel step 2 -->
+      <div id="payPanel2" style="display:none">
+        <h2 class="modal-title">Realizá el pago</h2>
+        <p class="modal-subtitle">Escaneá el QR o transferí al número indicado, luego subí tu comprobante</p>
+
+        <div class="pay-panel2-grid">
+          <!-- QR -->
+          <div class="qr-side">
+            <div class="qr-placeholder">
+              <img src="qr.png" alt="Código QR" style="width:100%;height:100%;object-fit:contain;border-radius:10px;display:block;" />
+            </div>
+            <div class="qr-total-label">Total a pagar</div>
+            <div class="qr-total-value" id="qrTotal">$ 0</div>
+            <div class="yape-info">
+              <div class="yape-name">👤 Alexander Cas*</div>
+              <div class="yape-number-row">
+                <span class="yape-label">📱 Número Yape:</span>
+                <span class="yape-number" id="yapeNumber">936449495</span>
+                <button class="btn-copy" onclick="copyYape()" title="Copiar número">📋</button>
+              </div>
+              <div class="yape-copied" id="yapeCopied">¡Copiado!</div>
+            </div>
+          </div>
+
+          <!-- Upload -->
+          <div class="upload-side">
+            <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+              <div class="upload-icon">📎</div>
+              <div class="upload-text">Subí tu comprobante</div>
+              <div class="upload-hint">JPG, PNG o PDF — máx. 5MB</div>
+              <input type="file" id="fileInput" accept="image/*,.pdf" style="display:none" onchange="previewFile(this)" />
+            </div>
+            <div id="filePreview" class="file-preview" style="display:none"></div>
+            <input type="text" id="nroOperacion" class="uid-input" placeholder="Número de operación (opcional)" style="margin-top:10px" />
+          </div>
+        </div>
+
+        <div class="modal-actions" style="margin-top:16px">
+          <button class="btn-modal-cancel" onclick="volverResumen()">← Volver</button>
+          <button class="btn-modal-confirm" onclick="irAConfirmar()">Confirmar pago →</button>
+        </div>
+      </div>
+
+      <!-- Panel step 3 -->
+      <div id="payPanel3" style="display:none">
+        <div class="success-icon">✅</div>
+        <h2 class="modal-title">¡Pedido enviado!</h2>
+        <p class="modal-subtitle">Recibimos tu solicitud. Los diamantes se acreditarán en tu cuenta en unos minutos.</p>
+
+        <div class="order-number-box">
+          <div class="order-number-label">Número de orden</div>
+          <div class="order-number-value" id="orderNumber">#FF-000000</div>
+        </div>
+
+        <div class="pay-detail-row"><span>Producto</span><strong id="doneProduct">—</strong></div>
+        <div class="pay-detail-row"><span>User ID</span><strong id="doneUID">—</strong></div>
+        <div class="pay-detail-row total"><span>Total pagado</span><strong id="doneTotal" class="price-accent">$ 0</strong></div>
+
+        <div class="screenshot-warn">
+          <div class="screenshot-warn-title">📸 ¡IMPORTANTE — TOMÁ CAPTURA!</div>
+          <p>Guardá una captura de pantalla de esta pantalla con tu <strong>número de orden</strong>. La necesitarás para hacer un reclamo en caso de cualquier inconveniente con tu pedido.</p>
+        </div>
+
+        <button class="btn-buy-now full-btn" style="margin-top:16px" onclick="closeModal('modalPago')">CERRAR</button>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

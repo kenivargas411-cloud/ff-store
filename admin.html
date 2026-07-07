@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel – FF Store</title>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+
+  <!-- ══ LOGIN ══ -->
+  <div id="loginScreen" class="login-screen">
+    <div class="login-box">
+      <div class="login-logo">
+        <div class="login-diamond">💎</div>
+        <div>
+          <div class="login-title">FF Store</div>
+          <div class="login-sub">Panel de Administrador</div>
+        </div>
+      </div>
+      <div class="login-field">
+        <label>Usuario</label>
+        <input type="text" id="adminUser" placeholder="admin" autocomplete="off" />
+      </div>
+      <div class="login-field">
+        <label>Contraseña</label>
+        <div class="pass-wrap">
+          <input type="password" id="adminPass" placeholder="••••••••" />
+          <button class="btn-eye" onclick="togglePass()">👁</button>
+        </div>
+      </div>
+      <div class="login-error" id="loginError"></div>
+      <button class="btn-ingresar" onclick="adminLogin()">INGRESAR AL PANEL</button>
+    </div>
+  </div>
+
+  <!-- ══ PANEL ══ -->
+  <div id="adminPanel" class="admin-panel" style="display:none">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="sl-diamond">💎</div>
+        <div>
+          <div class="sl-title">FF Store</div>
+          <div class="sl-sub">Admin Panel</div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <a class="nav-item active" onclick="showSection('orders')" id="nav-orders">
+          <span class="nav-icon">📦</span> Pedidos
+          <span class="nav-badge" id="badgePending"></span>
+        </a>
+        <a class="nav-item" onclick="showSection('stats')" id="nav-stats">
+          <span class="nav-icon">📊</span> Estadísticas
+        </a>
+        <a class="nav-item" onclick="showSection('users')" id="nav-users">
+          <span class="nav-icon">👥</span> Usuarios
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="server-status" id="serverStatus">
+          <span class="dot dot-green"></span> Servidor activo
+        </div>
+        <button class="btn-logout-admin" onclick="adminLogout()">🚪 Cerrar sesión</button>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="admin-main">
+
+      <!-- TOPBAR -->
+      <div class="topbar">
+        <div>
+          <h1 class="topbar-title" id="sectionTitle">Pedidos</h1>
+          <p class="topbar-sub" id="sectionSub">Gestión de órdenes de compra</p>
+        </div>
+        <div class="topbar-right">
+          <div class="admin-badge">🛡 Administrador</div>
+          <div class="topbar-time" id="topbarTime"></div>
+          <button class="btn-refresh" onclick="refreshCurrent()" title="Actualizar">🔄</button>
+        </div>
+      </div>
+
+      <!-- ══ ORDERS ══ -->
+      <div id="section-orders">
+        <div class="stats-row">
+          <div class="stat-card" style="animation-delay:.05s">
+            <div class="stat-icon yellow">📦</div>
+            <div><div class="stat-num" id="statTotal">0</div><div class="stat-label">Total pedidos</div></div>
+          </div>
+          <div class="stat-card" style="animation-delay:.1s">
+            <div class="stat-icon orange">⏳</div>
+            <div><div class="stat-num" id="statPend">0</div><div class="stat-label">Pendientes</div></div>
+          </div>
+          <div class="stat-card" style="animation-delay:.15s">
+            <div class="stat-icon blue">⚙</div>
+            <div><div class="stat-num" id="statProc">0</div><div class="stat-label">En proceso</div></div>
+          </div>
+          <div class="stat-card" style="animation-delay:.2s">
+            <div class="stat-icon green">✔</div>
+            <div><div class="stat-num" id="statDone">0</div><div class="stat-label">Completados</div></div>
+          </div>
+        </div>
+
+        <div class="filters-bar">
+          <input type="text" id="searchInput" class="filter-search" placeholder="🔍 Buscar orden, usuario, producto..." oninput="filterAndDraw()" />
+          <select id="filterStatus" class="filter-select" onchange="filterAndDraw()">
+            <option value="">Todos los estados</option>
+            <option value="pending">⏳ Pendiente</option>
+            <option value="processing">⚙ En proceso</option>
+            <option value="completed">✔ Completado</option>
+          </select>
+          <button class="btn-export" onclick="exportCSV()">⬇ Exportar CSV</button>
+        </div>
+
+        <div class="table-wrap">
+          <table class="orders-table">
+            <thead>
+              <tr>
+                <th>Orden</th>
+                <th>Usuario</th>
+                <th>Producto</th>
+                <th>User ID FF</th>
+                <th>Monto</th>
+                <th>Fecha</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="ordersBody"></tbody>
+          </table>
+          <div class="table-empty" id="tableEmpty" style="display:none">
+            <div>📭</div><p>No hay pedidos aún</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ STATS ══ -->
+      <div id="section-stats" style="display:none">
+        <div class="stats-big">
+          <div class="stat-big-card"><div class="sbig-label">Total pedidos</div><div class="sbig-value accent" id="stBigTotal">0</div></div>
+          <div class="stat-big-card"><div class="sbig-label">Pedido más reciente</div><div class="sbig-value blue" id="stLastOrder">—</div></div>
+          <div class="stat-big-card"><div class="sbig-label">Producto más vendido</div><div class="sbig-value green" id="stTopProduct">—</div></div>
+        </div>
+        <div class="chart-placeholder">
+          <div class="chart-icon">📈</div>
+          <p>Conectá tu backend a una base de datos externa para ver gráficos en tiempo real.</p>
+        </div>
+      </div>
+
+      <!-- ══ USERS ══ -->
+      <div id="section-users" style="display:none">
+        <div class="table-wrap">
+          <table class="orders-table">
+            <thead>
+              <tr><th>#</th><th>Usuario</th><th>Email</th><th>Pedidos</th><th>Registrado</th></tr>
+            </thead>
+            <tbody id="usersBody"></tbody>
+          </table>
+          <div class="table-empty" id="usersEmpty" style="display:none">
+            <div>👥</div><p>No hay usuarios registrados</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="admin-toast" id="adminToast"></div>
+  <script src="admin.js"></script>
+</body>
+</html>
