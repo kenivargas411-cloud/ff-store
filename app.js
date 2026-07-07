@@ -17,7 +17,7 @@ const DIAMONDS = [
 ];
 
 const PAYMENTS = [
-  { img: 'pay-icon5.png', name: 'PayPal', promo: true },
+  { img: 'pay-icon5.png', name: 'Yape QR', promo: true },
 ];
 
 // ── FORMATO PRECIO (Soles peruanos) ───────────────────────────────────────────
@@ -343,6 +343,7 @@ let userOrders  = [];
       if (data.username) {
         authToken = saved;
         setLoggedIn(data.username);
+        connectSSE();
       }
     }).catch(() => localStorage.removeItem('ff_token'));
 })();
@@ -368,6 +369,36 @@ function setLoggedIn(username) {
   document.getElementById('btnMenu').style.display  = 'flex';
   document.getElementById('comprasUsername').textContent = username;
   document.getElementById('btnWsp').style.display = 'flex';
+  connectSSE();
+}
+
+// ── SSE TIEMPO REAL ───────────────────────────────────────────────────────────
+let sseSource = null;
+function connectSSE() {
+  if (!authToken) return;
+  if (sseSource) sseSource.close();
+
+  sseSource = new EventSource(`${API}/events?token=${authToken}`);
+
+  sseSource.onmessage = (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      if (data.type === 'order_update') {
+        // Actualizar el pedido en el drawer si está abierto
+        const drawer = document.getElementById('drawer');
+        if (drawer && drawer.classList.contains('open')) loadOrders();
+
+        // Notificación toast al cliente
+        const statusLabel = data.status === 'completed' ? '✔ Completado' : data.status === 'processing' ? '⚙ En proceso' : '⏳ Pendiente';
+        showToast(`📦 Pedido ${data.order_num}: ${statusLabel}`, data.status === 'completed');
+      }
+    } catch {}
+  };
+
+  sseSource.onerror = () => {
+    // Reconectar en 5 segundos si se cae
+    setTimeout(() => { if (authToken) connectSSE(); }, 5000);
+  };
 }
 
 function toggleDrawer() {
@@ -391,6 +422,7 @@ function logout() {
   currentUser = null;
   authToken   = null;
   userOrders  = [];
+  if (sseSource) { sseSource.close(); sseSource = null; }
   localStorage.removeItem('ff_token');
   document.getElementById('btnLogin').style.display = 'flex';
   document.getElementById('btnMenu').style.display  = 'none';

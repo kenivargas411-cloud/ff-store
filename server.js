@@ -171,6 +171,11 @@ app.put('/api/admin/orders/:order_num', adminMiddleware, (req, res) => {
   if (!valid.includes(status)) return res.status(400).json({ error: 'Estado inválido' });
   const orderNum = decodeURIComponent(req.params.order_num);
   db.prepare("UPDATE orders SET status = ? WHERE order_num = ?").run(status, orderNum);
+
+  // Notificar al usuario dueño del pedido en tiempo real
+  const order = db.prepare("SELECT user_id FROM orders WHERE order_num = ?").get(orderNum);
+  if (order) notifyUser(order.user_id, { type: 'order_update', order_num: orderNum, status });
+
   res.json({ success: true });
 });
 
@@ -196,6 +201,31 @@ app.get('/api/admin/stats', adminMiddleware, (req, res) => {
   const users    = db.prepare("SELECT COUNT(*) as n FROM users WHERE role='user'").get().n;
   res.json({ total, pending, processing: proc, completed: done, users });
 });
+
+// ── SSE — Tiempo real ─────────────────────────────────────────────────────────
+const sseClients = new Map(); // userId → res
+
+app.get('/api/events', (req, res) => {
+  // Token puede venir en header o query param (EventSource no soporta headers)
+  const token = req.headers.authorization?.split(' ')[1] || req.query.token;
+  if (!token) return res.status(401).end();
+  let user;
+  try { user = jwt.verify(token, SECRET); } catch { return res.status(401).end(); }
+
+  res.setHeader('Content-Type',  'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection',    'keep-alive');
+  res.flushHeaders();
+
+  sseClients.set(user.id, res);
+  const ping = setInterval(() => res.write(': ping\n\n'), 25000);
+  req.on('close', () => { clearInterval(ping); sseClients.delete(user.id); });
+});
+
+function notifyUser(userId, data) {
+  const client = sseClients.get(userId);
+  if (client) client.write(`data: ${JSON.stringify(data)}\n\n`);
+}
 
 // ── Subir comprobante
 app.post('/api/orders/:order_num/comprobante', authMiddleware, upload.single('comprobante'), (req, res) => {
