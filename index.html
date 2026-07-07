@@ -282,12 +282,14 @@
         </div>
         <div class="auth-field">
           <label>Usuario</label>
-          <input type="text" id="loginUser" class="uid-input" placeholder="Tu nombre de usuario" />
+          <input type="text" id="loginUser" class="uid-input" placeholder="Tu nombre de usuario"
+            autocomplete="username" />
         </div>
         <div class="auth-field">
           <label>Contraseña</label>
           <div class="pass-wrap">
-            <input type="password" id="loginPass" class="uid-input" placeholder="Tu contraseña" />
+            <input type="password" id="loginPass" class="uid-input" placeholder="Tu contraseña"
+              autocomplete="current-password" />
             <button class="btn-eye" onclick="togglePass('loginPass', this)">👁</button>
           </div>
         </div>
@@ -306,23 +308,27 @@
         </div>
         <div class="auth-field">
           <label>Usuario</label>
-          <input type="text" id="regUser" class="uid-input" placeholder="Elegí un nombre de usuario" />
+          <input type="text" id="regUser" class="uid-input" placeholder="Elegí un nombre de usuario"
+            autocomplete="username" />
         </div>
         <div class="auth-field">
           <label>Correo electrónico</label>
-          <input type="email" id="regEmail" class="uid-input" placeholder="tucorreo@email.com" />
+          <input type="email" id="regEmail" class="uid-input" placeholder="tucorreo@email.com"
+            autocomplete="email" />
         </div>
         <div class="auth-field">
           <label>Contraseña</label>
           <div class="pass-wrap">
-            <input type="password" id="regPass" class="uid-input" placeholder="Mínimo 6 caracteres" />
+            <input type="password" id="regPass" class="uid-input" placeholder="Mínimo 6 caracteres"
+              autocomplete="new-password" />
             <button class="btn-eye" onclick="togglePass('regPass', this)">👁</button>
           </div>
         </div>
         <div class="auth-field">
           <label>Confirmar contraseña</label>
           <div class="pass-wrap">
-            <input type="password" id="regPass2" class="uid-input" placeholder="Repetí tu contraseña" />
+            <input type="password" id="regPass2" class="uid-input" placeholder="Repetí tu contraseña"
+              autocomplete="new-password" />
             <button class="btn-eye" onclick="togglePass('regPass2', this)">👁</button>
           </div>
         </div>
