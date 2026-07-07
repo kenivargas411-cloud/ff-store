@@ -97,7 +97,6 @@
             <input type="text" id="userIdInput" class="uid-input" placeholder="Ejemplo: 123456789"
               maxlength="15" oninput="syncUID(this.value)" />
             <p class="uid-hint">Solo números, entre 6 y 15 dígitos</p>
-            <div class="uid-verify" id="uidVerify" style="display:none"></div>
 
             <details class="uid-help">
               <summary>¿Dónde encuentro mi User ID? <span class="uid-chevron">▲</span></summary>
@@ -283,13 +282,13 @@
         <div class="auth-field">
           <label>Usuario</label>
           <input type="text" id="loginUser" class="uid-input" placeholder="Tu nombre de usuario"
-            autocomplete="username" />
+            autocomplete="off" />
         </div>
         <div class="auth-field">
           <label>Contraseña</label>
           <div class="pass-wrap">
             <input type="password" id="loginPass" class="uid-input" placeholder="Tu contraseña"
-              autocomplete="current-password" />
+              autocomplete="off" />
             <button class="btn-eye" onclick="togglePass('loginPass', this)">👁</button>
           </div>
         </div>
@@ -308,27 +307,23 @@
         </div>
         <div class="auth-field">
           <label>Usuario</label>
-          <input type="text" id="regUser" class="uid-input" placeholder="Elegí un nombre de usuario"
-            autocomplete="username" />
+          <input type="text" id="regUser" class="uid-input" placeholder="Elegí un nombre de usuario" autocomplete="off" />
         </div>
         <div class="auth-field">
           <label>Correo electrónico</label>
-          <input type="email" id="regEmail" class="uid-input" placeholder="tucorreo@email.com"
-            autocomplete="email" />
+          <input type="email" id="regEmail" class="uid-input" placeholder="tucorreo@email.com" autocomplete="off" />
         </div>
         <div class="auth-field">
           <label>Contraseña</label>
           <div class="pass-wrap">
-            <input type="password" id="regPass" class="uid-input" placeholder="Mínimo 6 caracteres"
-              autocomplete="new-password" />
+            <input type="password" id="regPass" class="uid-input" placeholder="Mínimo 6 caracteres" autocomplete="off" />
             <button class="btn-eye" onclick="togglePass('regPass', this)">👁</button>
           </div>
         </div>
         <div class="auth-field">
           <label>Confirmar contraseña</label>
           <div class="pass-wrap">
-            <input type="password" id="regPass2" class="uid-input" placeholder="Repetí tu contraseña"
-              autocomplete="new-password" />
+            <input type="password" id="regPass2" class="uid-input" placeholder="Repetí tu contraseña" autocomplete="off" />
             <button class="btn-eye" onclick="togglePass('regPass2', this)">👁</button>
           </div>
         </div>

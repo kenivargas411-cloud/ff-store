@@ -136,49 +136,12 @@ function syncUID(value) {
   document.getElementById('userIdInput').value = clean;
   document.getElementById('orderUid').value = clean;
   checkReady();
-  // Validar UID cuando tiene al menos 6 dígitos
-  if (clean.length >= 6) validateUID(clean);
-  else hideUIDVerify();
 }
 function syncUID2(value) {
   const clean = value.replace(/\D/g, '');
   document.getElementById('orderUid').value = clean;
   document.getElementById('userIdInput').value = clean;
   checkReady();
-  if (clean.length >= 6) validateUID(clean);
-  else hideUIDVerify();
-}
-
-let validateTimer = null;
-function validateUID(uid) {
-  if (!authToken) return;
-  clearTimeout(validateTimer);
-  const box = document.getElementById('uidVerify');
-  box.style.display = 'block';
-  box.className = 'uid-verify loading';
-  box.innerHTML = '⏳ Verificando jugador...';
-
-  validateTimer = setTimeout(async () => {
-    try {
-      const res  = await fetch(`${API}/validate-uid/${uid}`, { headers: { Authorization: 'Bearer ' + authToken } });
-      const data = await res.json();
-      if (data.name) {
-        box.className = 'uid-verify success';
-        box.innerHTML = `✅ <strong>${data.name}</strong> — ID verificado`;
-      } else {
-        box.className = 'uid-verify warn';
-        box.innerHTML = '⚠️ No se pudo verificar el nombre, pero podés continuar';
-      }
-    } catch {
-      box.className = 'uid-verify warn';
-      box.innerHTML = '⚠️ Sin conexión para verificar';
-    }
-  }, 800);
-}
-
-function hideUIDVerify() {
-  const box = document.getElementById('uidVerify');
-  if (box) { box.style.display = 'none'; box.innerHTML = ''; }
 }
 
 // ── ADD TO CART ───────────────────────────────────────────────────────────────
