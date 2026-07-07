@@ -274,7 +274,7 @@ app.post('/api/orders/:order_num/comprobante', authMiddleware, upload.single('co
 //  INICIO
 // ══════════════════════════════════════
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n🚀 FF Store Server corriendo en http://localhost:${PORT}`);
   console.log(`📦 Base de datos: ffstore.db`);
   console.log(`🔑 Admin: admin / ffstore2025\n`);
