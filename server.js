@@ -41,31 +41,61 @@ if (process.env.DATABASE_URL) {
 
 // ── INIT DB ───────────────────────────────────────────────────────────────────
 async function initDB() {
-  await query(`
-    CREATE TABLE IF NOT EXISTS users (
-      id        SERIAL PRIMARY KEY,
-      username  TEXT UNIQUE NOT NULL,
-      email     TEXT UNIQUE NOT NULL,
-      password  TEXT NOT NULL,
-      role      TEXT DEFAULT 'user',
-      created   TIMESTAMP DEFAULT NOW()
-    )
-  `);
-  await query(`
-    CREATE TABLE IF NOT EXISTS orders (
-      id          SERIAL PRIMARY KEY,
-      order_num   TEXT UNIQUE NOT NULL,
-      user_id     INTEGER NOT NULL,
-      username    TEXT NOT NULL,
-      product     TEXT NOT NULL,
-      uid         TEXT NOT NULL,
-      total       TEXT NOT NULL,
-      status      TEXT DEFAULT 'pending',
-      comprobante TEXT DEFAULT NULL,
-      nro_op      TEXT DEFAULT NULL,
-      date        TIMESTAMP DEFAULT NOW()
-    )
-  `);
+  if (process.env.DATABASE_URL) {
+    // PostgreSQL
+    await query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id        SERIAL PRIMARY KEY,
+        username  TEXT UNIQUE NOT NULL,
+        email     TEXT UNIQUE NOT NULL,
+        password  TEXT NOT NULL,
+        role      TEXT DEFAULT 'user',
+        created   TIMESTAMP DEFAULT NOW()
+      )
+    `);
+    await query(`
+      CREATE TABLE IF NOT EXISTS orders (
+        id          SERIAL PRIMARY KEY,
+        order_num   TEXT UNIQUE NOT NULL,
+        user_id     INTEGER NOT NULL,
+        username    TEXT NOT NULL,
+        product     TEXT NOT NULL,
+        uid         TEXT NOT NULL,
+        total       TEXT NOT NULL,
+        status      TEXT DEFAULT 'pending',
+        comprobante TEXT DEFAULT NULL,
+        nro_op      TEXT DEFAULT NULL,
+        date        TIMESTAMP DEFAULT NOW()
+      )
+    `);
+  } else {
+    // SQLite
+    await query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id        INTEGER PRIMARY KEY AUTOINCREMENT,
+        username  TEXT UNIQUE NOT NULL,
+        email     TEXT UNIQUE NOT NULL,
+        password  TEXT NOT NULL,
+        role      TEXT DEFAULT 'user',
+        created   TEXT DEFAULT (datetime('now'))
+      )
+    `);
+    await query(`
+      CREATE TABLE IF NOT EXISTS orders (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_num   TEXT UNIQUE NOT NULL,
+        user_id     INTEGER NOT NULL,
+        username    TEXT NOT NULL,
+        product     TEXT NOT NULL,
+        uid         TEXT NOT NULL,
+        total       TEXT NOT NULL,
+        status      TEXT DEFAULT 'pending',
+        comprobante TEXT DEFAULT NULL,
+        nro_op      TEXT DEFAULT NULL,
+        date        TEXT DEFAULT (datetime('now'))
+      )
+    `);
+  }
   // Admin por defecto
   const admin = await queryOne("SELECT id FROM users WHERE username = 'admin'");
   if (!admin) {
