@@ -8,8 +8,12 @@ const multer     = require('multer');
 const fs         = require('fs');
 
 const app    = express();
-const db     = new Database(path.join(__dirname, 'ffstore.db'));
 const SECRET = 'ffstore_secret_2025_jwt';
+
+// Usar /data si existe (volumen Railway), sino directorio local
+const dataDir = fs.existsSync('/data') ? '/data' : __dirname;
+const db      = new Database(path.join(dataDir, 'ffstore.db'));
+console.log('📦 DB en:', path.join(dataDir, 'ffstore.db'));
 
 // Carpeta para comprobantes
 const uploadsDir = path.join(__dirname, 'uploads');
