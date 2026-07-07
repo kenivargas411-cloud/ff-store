@@ -5,27 +5,38 @@ const cors     = require('cors');
 const path     = require('path');
 const multer   = require('multer');
 const fs       = require('fs');
-const { Pool } = require('pg');
 
 const app    = express();
 const SECRET = 'ffstore_secret_2025_jwt';
 
-// ── BASE DE DATOS POSTGRESQL ──────────────────────────────────────────────────
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
-});
+// ── BASE DE DATOS ─────────────────────────────────────────────────────────────
+let query, queryOne;
 
-async function query(sql, params = []) {
-  const client = await pool.connect();
-  try {
-    const res = await client.query(sql, params);
-    return res.rows;
-  } finally { client.release(); }
-}
-async function queryOne(sql, params = []) {
-  const rows = await query(sql, params);
-  return rows[0] || null;
+if (process.env.DATABASE_URL) {
+  // PostgreSQL
+  const { Pool } = require('pg');
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false }
+  });
+  query    = async (sql, params=[]) => { const r = await pool.query(sql, params); return r.rows; };
+  queryOne = async (sql, params=[]) => { const r = await pool.query(sql, params); return r.rows[0]||null; };
+  console.log('🗄️  Usando PostgreSQL');
+} else {
+  // SQLite fallback
+  const Database = require('better-sqlite3');
+  const db = new Database(path.join(__dirname, 'ffstore.db'));
+  db.pragma('foreign_keys = OFF');
+  query    = (sql, params=[]) => {
+    const pgToSql = sql.replace(/\$\d+/g, '?').replace(/SERIAL PRIMARY KEY/g,'INTEGER PRIMARY KEY AUTOINCREMENT').replace(/NOW\(\)/g,"datetime('now')");
+    return Promise.resolve(db.prepare(pgToSql).all(...params));
+  };
+  queryOne = (sql, params=[]) => {
+    const pgToSql = sql.replace(/\$\d+/g, '?').replace(/SERIAL PRIMARY KEY/g,'INTEGER PRIMARY KEY AUTOINCREMENT').replace(/NOW\(\)/g,"datetime('now')").replace(/RETURNING id/,'');
+    const r = db.prepare(pgToSql).get(...params);
+    return Promise.resolve(r||null);
+  };
+  console.log('🗄️  Usando SQLite (sin DATABASE_URL)');
 }
 
 // ── INIT DB ───────────────────────────────────────────────────────────────────
@@ -104,8 +115,16 @@ app.post('/api/register', async (req, res) => {
     const exists = await queryOne("SELECT id FROM users WHERE username=$1 OR email=$2", [username, email]);
     if (exists) return res.status(409).json({ error: 'Usuario o email ya registrado' });
     const hash = bcrypt.hashSync(password, 10);
-    const row  = await queryOne("INSERT INTO users (username,email,password) VALUES ($1,$2,$3) RETURNING id", [username, email, hash]);
-    const token = jwt.sign({ id: row.id, username, role: 'user' }, SECRET, { expiresIn: '7d' });
+    let userId;
+    if (process.env.DATABASE_URL) {
+      const row = await queryOne("INSERT INTO users (username,email,password) VALUES ($1,$2,$3) RETURNING id", [username, email, hash]);
+      userId = row.id;
+    } else {
+      await query("INSERT INTO users (username,email,password) VALUES ($1,$2,$3)", [username, email, hash]);
+      const row = await queryOne("SELECT id FROM users WHERE username=$1", [username]);
+      userId = row.id;
+    }
+    const token = jwt.sign({ id: userId, username, role: 'user' }, SECRET, { expiresIn: '7d' });
     res.json({ token, username, role: 'user' });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
