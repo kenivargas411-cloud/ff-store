@@ -23,6 +23,9 @@ try {
 const db = new Database(path.join(dataDir, 'ffstore.db'));
 console.log('📦 DB en:', path.join(dataDir, 'ffstore.db'));
 
+// Deshabilitar FOREIGN KEY constraints para evitar errores entre reinicios
+db.pragma('foreign_keys = OFF');
+
 // Carpeta para comprobantes
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
@@ -62,8 +65,7 @@ db.exec(`
     status       TEXT    DEFAULT 'pending',
     comprobante  TEXT    DEFAULT NULL,
     nro_op       TEXT    DEFAULT NULL,
-    date         TEXT    DEFAULT (datetime('now','localtime')),
-    FOREIGN KEY(user_id) REFERENCES users(id)
+    date         TEXT    DEFAULT (datetime('now','localtime'))
   );
 `);
 // Migrar tabla vieja si no tiene columna comprobante
