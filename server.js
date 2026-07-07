@@ -1,35 +1,74 @@
-const express    = require('express');
-const Database   = require('better-sqlite3');
-const bcrypt     = require('bcryptjs');
-const jwt        = require('jsonwebtoken');
-const cors       = require('cors');
-const path       = require('path');
-const multer     = require('multer');
-const fs         = require('fs');
+const express  = require('express');
+const bcrypt   = require('bcryptjs');
+const jwt      = require('jsonwebtoken');
+const cors     = require('cors');
+const path     = require('path');
+const multer   = require('multer');
+const fs       = require('fs');
+const { Pool } = require('pg');
 
 const app    = express();
 const SECRET = 'ffstore_secret_2025_jwt';
 
-// Usar /data si existe y tiene permisos (volumen Railway), sino directorio local
-let dataDir = __dirname;
-try {
-  if (fs.existsSync('/data')) {
-    fs.accessSync('/data', fs.constants.W_OK);
-    dataDir = '/data';
-  }
-} catch(e) {
-  console.log('⚠️ /data no tiene permisos, usando directorio local');
+// ── BASE DE DATOS POSTGRESQL ──────────────────────────────────────────────────
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
+});
+
+async function query(sql, params = []) {
+  const client = await pool.connect();
+  try {
+    const res = await client.query(sql, params);
+    return res.rows;
+  } finally { client.release(); }
 }
-const db = new Database(path.join(dataDir, 'ffstore.db'));
-console.log('📦 DB en:', path.join(dataDir, 'ffstore.db'));
+async function queryOne(sql, params = []) {
+  const rows = await query(sql, params);
+  return rows[0] || null;
+}
 
-// Deshabilitar FOREIGN KEY constraints para evitar errores entre reinicios
-db.pragma('foreign_keys = OFF');
+// ── INIT DB ───────────────────────────────────────────────────────────────────
+async function initDB() {
+  await query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id        SERIAL PRIMARY KEY,
+      username  TEXT UNIQUE NOT NULL,
+      email     TEXT UNIQUE NOT NULL,
+      password  TEXT NOT NULL,
+      role      TEXT DEFAULT 'user',
+      created   TIMESTAMP DEFAULT NOW()
+    )
+  `);
+  await query(`
+    CREATE TABLE IF NOT EXISTS orders (
+      id          SERIAL PRIMARY KEY,
+      order_num   TEXT UNIQUE NOT NULL,
+      user_id     INTEGER NOT NULL,
+      username    TEXT NOT NULL,
+      product     TEXT NOT NULL,
+      uid         TEXT NOT NULL,
+      total       TEXT NOT NULL,
+      status      TEXT DEFAULT 'pending',
+      comprobante TEXT DEFAULT NULL,
+      nro_op      TEXT DEFAULT NULL,
+      date        TIMESTAMP DEFAULT NOW()
+    )
+  `);
+  // Admin por defecto
+  const admin = await queryOne("SELECT id FROM users WHERE username = 'admin'");
+  if (!admin) {
+    const hash = bcrypt.hashSync('ffstore2025', 10);
+    await query("INSERT INTO users (username, email, password, role) VALUES ($1,$2,$3,$4)",
+      ['admin','admin@ffstore.com', hash, 'admin']);
+    console.log('✅ Admin creado: admin / ffstore2025');
+  }
+  console.log('✅ PostgreSQL listo');
+}
 
-// Carpeta para comprobantes
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
-
+// ── ARCHIVOS ──────────────────────────────────────────────────────────────────
+const uploadsDir = path.join('/tmp', 'uploads');
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadsDir),
   filename:    (req, file, cb) => cb(null, Date.now() + '_' + file.originalname.replace(/\s/g,'_'))
@@ -41,59 +80,13 @@ app.use(express.json());
 app.use(express.static(__dirname));
 app.use('/uploads', express.static(uploadsDir));
 
-// ══════════════════════════════════════
-//  INICIALIZAR BASE DE DATOS
-// ══════════════════════════════════════
-db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
-    id        INTEGER PRIMARY KEY AUTOINCREMENT,
-    username  TEXT    UNIQUE NOT NULL,
-    email     TEXT    UNIQUE NOT NULL,
-    password  TEXT    NOT NULL,
-    role      TEXT    DEFAULT 'user',
-    created   TEXT    DEFAULT (datetime('now','localtime'))
-  );
-
-  CREATE TABLE IF NOT EXISTS orders (
-    id           INTEGER PRIMARY KEY AUTOINCREMENT,
-    order_num    TEXT    UNIQUE NOT NULL,
-    user_id      INTEGER NOT NULL,
-    username     TEXT    NOT NULL,
-    product      TEXT    NOT NULL,
-    uid          TEXT    NOT NULL,
-    total        TEXT    NOT NULL,
-    status       TEXT    DEFAULT 'pending',
-    comprobante  TEXT    DEFAULT NULL,
-    nro_op       TEXT    DEFAULT NULL,
-    date         TEXT    DEFAULT (datetime('now','localtime'))
-  );
-`);
-// Migrar tabla vieja si no tiene columna comprobante
-try { db.exec("ALTER TABLE orders ADD COLUMN comprobante TEXT DEFAULT NULL"); } catch {}
-try { db.exec("ALTER TABLE orders ADD COLUMN nro_op TEXT DEFAULT NULL"); } catch {}
-
-// Crear admin por defecto si no existe
-const adminExists = db.prepare("SELECT id FROM users WHERE username = 'admin'").get();
-if (!adminExists) {
-  const hash = bcrypt.hashSync('ffstore2025', 10);
-  db.prepare("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)").run('admin', 'admin@ffstore.com', hash, 'admin');
-  console.log('✅ Admin creado: admin / ffstore2025');
-}
-
-// ══════════════════════════════════════
-//  MIDDLEWARE JWT
-// ══════════════════════════════════════
+// ── JWT MIDDLEWARE ────────────────────────────────────────────────────────────
 function authMiddleware(req, res, next) {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(401).json({ error: 'Token requerido' });
-  try {
-    req.user = jwt.verify(token, SECRET);
-    next();
-  } catch {
-    res.status(401).json({ error: 'Token inválido' });
-  }
+  try { req.user = jwt.verify(token, SECRET); next(); }
+  catch { res.status(401).json({ error: 'Token inválido' }); }
 }
-
 function adminMiddleware(req, res, next) {
   authMiddleware(req, res, () => {
     if (req.user.role !== 'admin') return res.status(403).json({ error: 'Acceso denegado' });
@@ -101,195 +94,119 @@ function adminMiddleware(req, res, next) {
   });
 }
 
-// ══════════════════════════════════════
-//  AUTH ROUTES
-// ══════════════════════════════════════
-
-// REGISTRO
-app.post('/api/register', (req, res) => {
-  const { username, email, password } = req.body;
-  if (!username || !email || !password)
-    return res.status(400).json({ error: 'Todos los campos son requeridos' });
-  if (password.length < 6)
-    return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
-  if (!email.includes('@'))
-    return res.status(400).json({ error: 'Email inválido' });
-
-  const exists = db.prepare("SELECT id FROM users WHERE username = ? OR email = ?").get(username, email);
-  if (exists) return res.status(409).json({ error: 'Usuario o email ya registrado' });
-
-  const hash = bcrypt.hashSync(password, 10);
-  const info = db.prepare("INSERT INTO users (username, email, password) VALUES (?, ?, ?)").run(username, email, hash);
-
-  const token = jwt.sign({ id: info.lastInsertRowid, username, role: 'user' }, SECRET, { expiresIn: '7d' });
-  res.json({ token, username, role: 'user' });
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+app.post('/api/register', async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+    if (!username || !email || !password) return res.status(400).json({ error: 'Todos los campos son requeridos' });
+    if (password.length < 6) return res.status(400).json({ error: 'Contraseña mínimo 6 caracteres' });
+    if (!email.includes('@')) return res.status(400).json({ error: 'Email inválido' });
+    const exists = await queryOne("SELECT id FROM users WHERE username=$1 OR email=$2", [username, email]);
+    if (exists) return res.status(409).json({ error: 'Usuario o email ya registrado' });
+    const hash = bcrypt.hashSync(password, 10);
+    const row  = await queryOne("INSERT INTO users (username,email,password) VALUES ($1,$2,$3) RETURNING id", [username, email, hash]);
+    const token = jwt.sign({ id: row.id, username, role: 'user' }, SECRET, { expiresIn: '7d' });
+    res.json({ token, username, role: 'user' });
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// LOGIN
-app.post('/api/login', (req, res) => {
-  const { username, password } = req.body;
-  if (!username || !password)
-    return res.status(400).json({ error: 'Completá todos los campos' });
-
-  const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username);
-  if (!user) return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
-
-  const valid = bcrypt.compareSync(password, user.password);
-  if (!valid) return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
-
-  const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, SECRET, { expiresIn: '7d' });
-  res.json({ token, username: user.username, role: user.role });
+app.post('/api/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) return res.status(400).json({ error: 'Completá todos los campos' });
+    const user = await queryOne("SELECT * FROM users WHERE username=$1", [username]);
+    if (!user || !bcrypt.compareSync(password, user.password))
+      return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
+    const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, SECRET, { expiresIn: '7d' });
+    res.json({ token, username: user.username, role: user.role });
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// VERIFICAR TOKEN
 app.get('/api/me', authMiddleware, (req, res) => {
   res.json({ id: req.user.id, username: req.user.username, role: req.user.role });
 });
 
-// ══════════════════════════════════════
-//  ORDERS ROUTES (usuarios)
-// ══════════════════════════════════════
-
-// Crear pedido
-app.post('/api/orders', authMiddleware, (req, res) => {
-  const { order_num, product, uid, total } = req.body;
-  if (!order_num || !product || !uid || !total)
-    return res.status(400).json({ error: 'Datos incompletos' });
-
+// ── ORDERS ────────────────────────────────────────────────────────────────────
+app.post('/api/orders', authMiddleware, async (req, res) => {
   try {
-    db.prepare("INSERT INTO orders (order_num, user_id, username, product, uid, total) VALUES (?, ?, ?, ?, ?, ?)")
-      .run(order_num, req.user.id, req.user.username, product, uid, total);
+    const { order_num, product, uid, total } = req.body;
+    if (!order_num || !product || !uid || !total) return res.status(400).json({ error: 'Datos incompletos' });
+    await query("INSERT INTO orders (order_num,user_id,username,product,uid,total) VALUES ($1,$2,$3,$4,$5,$6)",
+      [order_num, req.user.id, req.user.username, product, uid, total]);
     res.json({ success: true, order_num });
-  } catch(e) {
-    console.error('Error INSERT orders:', e.message);
-    res.status(500).json({ error: e.message });
-  }
+  } catch(e) { console.error('Error orders:', e.message); res.status(500).json({ error: e.message }); }
 });
 
-// Mis pedidos
-app.get('/api/orders/me', authMiddleware, (req, res) => {
-  const orders = db.prepare("SELECT * FROM orders WHERE user_id = ? ORDER BY id DESC").all(req.user.id);
-  res.json(orders);
+app.get('/api/orders/me', authMiddleware, async (req, res) => {
+  try {
+    const orders = await query("SELECT * FROM orders WHERE user_id=$1 ORDER BY id DESC", [req.user.id]);
+    res.json(orders);
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// ══════════════════════════════════════
-//  ADMIN ROUTES
-// ══════════════════════════════════════
-
-// Todos los pedidos
-app.get('/api/admin/orders', adminMiddleware, (req, res) => {
-  const orders = db.prepare("SELECT * FROM orders ORDER BY id DESC").all();
-  res.json(orders);
+// ── ADMIN ─────────────────────────────────────────────────────────────────────
+app.get('/api/admin/orders', adminMiddleware, async (req, res) => {
+  try { res.json(await query("SELECT * FROM orders ORDER BY id DESC")); }
+  catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// Cambiar estado
-app.put('/api/admin/orders/:order_num', adminMiddleware, (req, res) => {
-  const { status } = req.body;
-  const valid = ['pending','processing','completed'];
-  if (!valid.includes(status)) return res.status(400).json({ error: 'Estado inválido' });
-  const orderNum = decodeURIComponent(req.params.order_num);
-  db.prepare("UPDATE orders SET status = ? WHERE order_num = ?").run(status, orderNum);
-
-  // Notificar al usuario dueño del pedido en tiempo real
-  const order = db.prepare("SELECT user_id FROM orders WHERE order_num = ?").get(orderNum);
-  if (order) notifyUser(order.user_id, { type: 'order_update', order_num: orderNum, status });
-
-  res.json({ success: true });
+app.put('/api/admin/orders/:order_num', adminMiddleware, async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!['pending','processing','completed'].includes(status)) return res.status(400).json({ error: 'Estado inválido' });
+    const orderNum = decodeURIComponent(req.params.order_num);
+    await query("UPDATE orders SET status=$1 WHERE order_num=$2", [status, orderNum]);
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// Eliminar pedido
-app.delete('/api/admin/orders/:order_num', adminMiddleware, (req, res) => {
-  const orderNum = decodeURIComponent(req.params.order_num);
-  db.prepare("DELETE FROM orders WHERE order_num = ?").run(orderNum);
-  res.json({ success: true });
+app.delete('/api/admin/orders/:order_num', adminMiddleware, async (req, res) => {
+  try {
+    const orderNum = decodeURIComponent(req.params.order_num);
+    await query("DELETE FROM orders WHERE order_num=$1", [orderNum]);
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// Todos los usuarios
-app.get('/api/admin/users', adminMiddleware, (req, res) => {
-  const users = db.prepare("SELECT id, username, email, role, created FROM users ORDER BY id DESC").all();
-  res.json(users);
+app.get('/api/admin/users', adminMiddleware, async (req, res) => {
+  try { res.json(await query("SELECT id,username,email,role,created FROM users ORDER BY id DESC")); }
+  catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// Stats
-app.get('/api/admin/stats', adminMiddleware, (req, res) => {
-  const total    = db.prepare("SELECT COUNT(*) as n FROM orders").get().n;
-  const pending  = db.prepare("SELECT COUNT(*) as n FROM orders WHERE status='pending'").get().n;
-  const proc     = db.prepare("SELECT COUNT(*) as n FROM orders WHERE status='processing'").get().n;
-  const done     = db.prepare("SELECT COUNT(*) as n FROM orders WHERE status='completed'").get().n;
-  const users    = db.prepare("SELECT COUNT(*) as n FROM users WHERE role='user'").get().n;
-  res.json({ total, pending, processing: proc, completed: done, users });
+app.get('/api/admin/stats', adminMiddleware, async (req, res) => {
+  try {
+    const [total, pending, proc, done, users] = await Promise.all([
+      queryOne("SELECT COUNT(*) as n FROM orders"),
+      queryOne("SELECT COUNT(*) as n FROM orders WHERE status='pending'"),
+      queryOne("SELECT COUNT(*) as n FROM orders WHERE status='processing'"),
+      queryOne("SELECT COUNT(*) as n FROM orders WHERE status='completed'"),
+      queryOne("SELECT COUNT(*) as n FROM users WHERE role='user'"),
+    ]);
+    res.json({ total: +total.n, pending: +pending.n, processing: +proc.n, completed: +done.n, users: +users.n });
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// ── Validar UID Free Fire ─────────────────────────────────────────────────────
-app.get('/api/validate-uid/:uid', authMiddleware, async (req, res) => {
-  const uid    = req.params.uid;
-  const region = req.query.region || 'me'; // me = Middle East/LATAM
-
-  // Intentar con múltiples APIs públicas
-  const apis = [
-    `https://ff-info.vercel.app/api/player?uid=${uid}&region=${region}`,
-    `https://api-freefire.vercel.app/player?uid=${uid}`,
-  ];
-
-  for (const url of apis) {
-    try {
-      const controller = new AbortController();
-      const timeout    = setTimeout(() => controller.abort(), 4000);
-      const response   = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeout);
-
-      if (response.ok) {
-        const data = await response.json();
-        const name = data?.basicInfo?.nickname || data?.name || data?.player?.name || null;
-        if (name) return res.json({ valid: true, name, uid });
-      }
-    } catch {}
-  }
-
-  // Si ninguna API responde, devolver válido sin nombre (no bloquear la compra)
-  res.json({ valid: true, name: null, uid });
-});
-const sseClients = new Map(); // userId → res
-
-app.get('/api/events', (req, res) => {
-  // Token puede venir en header o query param (EventSource no soporta headers)
-  const token = req.headers.authorization?.split(' ')[1] || req.query.token;
-  if (!token) return res.status(401).end();
-  let user;
-  try { user = jwt.verify(token, SECRET); } catch { return res.status(401).end(); }
-
-  res.setHeader('Content-Type',  'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection',    'keep-alive');
-  res.flushHeaders();
-
-  sseClients.set(user.id, res);
-  const ping = setInterval(() => res.write(': ping\n\n'), 25000);
-  req.on('close', () => { clearInterval(ping); sseClients.delete(user.id); });
+// ── COMPROBANTE ───────────────────────────────────────────────────────────────
+app.post('/api/orders/:order_num/comprobante', authMiddleware, upload.single('comprobante'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No se recibió archivo' });
+    const orderNum = decodeURIComponent(req.params.order_num);
+    const url = '/uploads/' + req.file.filename;
+    const nro = req.body.nro_op || null;
+    await query("UPDATE orders SET comprobante=$1, nro_op=$2, status='processing' WHERE order_num=$3 AND user_id=$4",
+      [url, nro, orderNum, req.user.id]);
+    res.json({ success: true, url });
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-function notifyUser(userId, data) {
-  const client = sseClients.get(userId);
-  if (client) client.write(`data: ${JSON.stringify(data)}\n\n`);
-}
-
-// ── Subir comprobante
-app.post('/api/orders/:order_num/comprobante', authMiddleware, upload.single('comprobante'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'No se recibió archivo' });
-  const orderNum = decodeURIComponent(req.params.order_num);
-  const url  = '/uploads/' + req.file.filename;
-  const nro  = req.body.nro_op || null;
-  db.prepare("UPDATE orders SET comprobante = ?, nro_op = ?, status = 'processing' WHERE order_num = ? AND user_id = ?")
-    .run(url, nro, orderNum, req.user.id);
-  res.json({ success: true, url });
-});
-
-// ══════════════════════════════════════
-//  INICIO
-// ══════════════════════════════════════
+// ── INICIO ────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n🚀 FF Store Server corriendo en http://localhost:${PORT}`);
-  console.log(`📦 Base de datos: ffstore.db`);
-  console.log(`🔑 Admin: admin / ffstore2025\n`);
+initDB().then(() => {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`\n🚀 FF Store en http://localhost:${PORT}`);
+    console.log(`🗄️  PostgreSQL conectado\n`);
+  });
+}).catch(e => {
+  console.error('Error iniciando DB:', e.message);
+  process.exit(1);
 });
