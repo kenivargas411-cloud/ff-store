@@ -138,11 +138,11 @@ function filterAndDraw() {
       <td><span class="badge-status ${bc}">${bl}</span></td>
       <td>
         <div class="td-actions">
-          ${o.comprobante ? `<button class="btn-ver-comp" onclick="verComprobante('${window.location.origin}${o.comprobante}','${o.order_num}','${o.nro_op||''}')">🖼 Ver</button>` : '<span class="sin-comp">Sin comprobante</span>'}
-          <button class="btn-status pend" onclick="changeStatus('${o.order_num}','pending')"    title="Pendiente">⏳</button>
-          <button class="btn-status"      onclick="changeStatus('${o.order_num}','processing')" title="En proceso">⚙</button>
-          <button class="btn-status done" onclick="changeStatus('${o.order_num}','completed')"  title="Completado">✔</button>
-          <button class="btn-delete"      onclick="deleteOrder('${o.order_num}')"               title="Eliminar">🗑</button>
+          ${o.comprobante ? `<button class="btn-ver-comp" onclick="verComprobante('${window.location.origin}${o.comprobante}','${o.order_num}','${o.nro_op||''}')">🖼 Ver</button>` : '<span class="sin-comp">Sin comp.</span>'}
+          <button class="btn-status pend ${o.status==='pending'?'active-btn':''}"    onclick="changeStatus('${o.order_num}','pending')"   >⏳ Pend.</button>
+          <button class="btn-status proc ${o.status==='processing'?'active-btn':''}" onclick="changeStatus('${o.order_num}','processing')">⚙ Proceso</button>
+          <button class="btn-status done ${o.status==='completed'?'active-btn':''}"  onclick="changeStatus('${o.order_num}','completed')" >✔ Listo</button>
+          <button class="btn-delete" onclick="deleteOrder('${o.order_num}')">🗑</button>
         </div>
       </td>`;
     tbody.appendChild(tr);

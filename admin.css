@@ -340,3 +340,8 @@ body {
 }
 .btn-ver-comp:hover { background: rgba(0,212,255,.2); }
 .sin-comp { font-size: 11px; color: var(--dim); font-style: italic; }
+
+.btn-status.proc { color: var(--accent2); border-color: var(--border2); }
+.btn-status.active-btn.pend { background: rgba(245,197,24,.2);  border-color: var(--accent);  color: var(--accent);  font-weight: 800; }
+.btn-status.active-btn.proc { background: rgba(0,212,255,.15);  border-color: var(--accent2); color: var(--accent2); font-weight: 800; }
+.btn-status.active-btn.done { background: rgba(34,197,94,.15);  border-color: var(--green);   color: var(--green);   font-weight: 800; }
