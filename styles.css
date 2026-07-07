@@ -952,3 +952,10 @@ body::before {
 
 /* ── Compras badge pulse ── */
 .compras-badge { animation: pulse-glow 3s ease-in-out infinite; border-radius: 20px; }
+
+.btn-refresh-orders {
+  background: transparent; border: none; cursor: pointer;
+  font-size: 14px; margin-left: 8px; opacity: .6;
+  transition: all .2s; vertical-align: middle;
+}
+.btn-refresh-orders:hover { opacity: 1; transform: rotate(180deg); }

@@ -374,10 +374,16 @@ function toggleDrawer() {
   const drawer  = document.getElementById('drawer');
   const overlay = document.getElementById('drawerOverlay');
   const isOpen  = drawer.classList.contains('open');
-  if (!isOpen) loadOrders();
+  if (!isOpen) loadOrders(); // carga al abrir
   drawer.classList.toggle('open');
   overlay.classList.toggle('open');
 }
+
+// Auto-actualizar pedidos cada 30 segundos si el drawer está abierto
+setInterval(() => {
+  const drawer = document.getElementById('drawer');
+  if (drawer && drawer.classList.contains('open')) loadOrders();
+}, 30000);
 
 function openCompras() { toggleDrawer(); }
 
