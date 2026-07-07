@@ -94,8 +94,16 @@ let allOrders = [];
 async function renderTable() {
   try {
     const res = await fetch(API + '/admin/orders', { headers: { Authorization: 'Bearer ' + adminToken } });
-    allOrders = await res.json();
-  } catch { allOrders = []; }
+    if (!res.ok) {
+      showToast('Error API: ' + res.status + ' ' + res.statusText, false);
+      allOrders = [];
+    } else {
+      allOrders = await res.json();
+    }
+  } catch(e) {
+    showToast('Sin conexión al servidor: ' + e.message, false);
+    allOrders = [];
+  }
   filterAndDraw();
   renderStats();
 }
