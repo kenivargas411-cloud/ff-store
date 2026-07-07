@@ -374,32 +374,35 @@ function setLoggedIn(username) {
 
 // ── SSE TIEMPO REAL ───────────────────────────────────────────────────────────
 let sseSource = null;
+let pollingInterval = null;
+
 function connectSSE() {
-  if (!authToken) return;
-  if (sseSource) sseSource.close();
-
-  sseSource = new EventSource(`${API}/events?token=${authToken}`);
-
-  sseSource.onmessage = (e) => {
+  // Usar polling cada 5 segundos (más confiable en Railway que SSE)
+  if (pollingInterval) clearInterval(pollingInterval);
+  pollingInterval = setInterval(async () => {
+    if (!authToken) return;
     try {
-      const data = JSON.parse(e.data);
-      if (data.type === 'order_update') {
-        // Actualizar el pedido en el drawer si está abierto
-        const drawer = document.getElementById('drawer');
-        if (drawer && drawer.classList.contains('open')) loadOrders();
-
-        // Notificación toast al cliente
-        const statusLabel = data.status === 'completed' ? '✔ Completado' : data.status === 'processing' ? '⚙ En proceso' : '⏳ Pendiente';
-        showToast(`📦 Pedido ${data.order_num}: ${statusLabel}`, data.status === 'completed');
+      const res    = await fetch(API + '/orders/me', { headers: { Authorization: 'Bearer ' + authToken } });
+      const orders = await res.json();
+      // Comparar si hay cambios de estado
+      const drawer = document.getElementById('drawer');
+      if (drawer && drawer.classList.contains('open')) {
+        renderOrders(orders);
       }
+      // Notificar si algún estado cambió
+      orders.forEach(o => {
+        const prev = lastOrderStates[o.order_num];
+        if (prev && prev !== o.status) {
+          const label = o.status === 'completed' ? '✔ Completado' : o.status === 'processing' ? '⚙ En proceso' : '⏳ Pendiente';
+          showToast(`📦 Pedido ${o.order_num}: ${label}`, o.status === 'completed');
+        }
+        lastOrderStates[o.order_num] = o.status;
+      });
     } catch {}
-  };
-
-  sseSource.onerror = () => {
-    // Reconectar en 5 segundos si se cae
-    setTimeout(() => { if (authToken) connectSSE(); }, 5000);
-  };
+  }, 5000);
 }
+
+let lastOrderStates = {};
 
 function toggleDrawer() {
   const drawer  = document.getElementById('drawer');
@@ -422,7 +425,8 @@ function logout() {
   currentUser = null;
   authToken   = null;
   userOrders  = [];
-  if (sseSource) { sseSource.close(); sseSource = null; }
+  if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; }
+  lastOrderStates = {};
   localStorage.removeItem('ff_token');
   document.getElementById('btnLogin').style.display = 'flex';
   document.getElementById('btnMenu').style.display  = 'none';
