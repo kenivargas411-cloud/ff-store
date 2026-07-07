@@ -28,13 +28,25 @@ if (process.env.DATABASE_URL) {
   const db = new Database(path.join(__dirname, 'ffstore.db'));
   db.pragma('foreign_keys = OFF');
   query    = (sql, params=[]) => {
-    const pgToSql = sql.replace(/\$\d+/g, '?').replace(/SERIAL PRIMARY KEY/g,'INTEGER PRIMARY KEY AUTOINCREMENT').replace(/NOW\(\)/g,"datetime('now')");
-    return Promise.resolve(db.prepare(pgToSql).all(...params));
+    const pgToSql = sql.replace(/\$(\d+)/g, '?');
+    try {
+      // Para CREATE/INSERT/UPDATE/DELETE usar run()
+      if (/^\s*(CREATE|INSERT|UPDATE|DELETE|ALTER)/i.test(sql)) {
+        const info = db.prepare(pgToSql).run(...params);
+        return Promise.resolve([info]);
+      }
+      return Promise.resolve(db.prepare(pgToSql).all(...params));
+    } catch(e) { return Promise.reject(e); }
   };
   queryOne = (sql, params=[]) => {
-    const pgToSql = sql.replace(/\$\d+/g, '?').replace(/SERIAL PRIMARY KEY/g,'INTEGER PRIMARY KEY AUTOINCREMENT').replace(/NOW\(\)/g,"datetime('now')").replace(/RETURNING id/,'');
-    const r = db.prepare(pgToSql).get(...params);
-    return Promise.resolve(r||null);
+    const pgToSql = sql.replace(/\$(\d+)/g, '?').replace(/\s*RETURNING\s+\w+/i, '');
+    try {
+      if (/^\s*(INSERT|UPDATE|DELETE)/i.test(sql)) {
+        const info = db.prepare(pgToSql.replace(/\s*RETURNING\s+\w+/i,'')).run(...params);
+        return Promise.resolve(info.lastInsertRowid ? { id: info.lastInsertRowid } : null);
+      }
+      return Promise.resolve(db.prepare(pgToSql).get(...params) || null);
+    } catch(e) { return Promise.reject(e); }
   };
   console.log('🗄️  Usando SQLite (sin DATABASE_URL)');
 }
